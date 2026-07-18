@@ -38,7 +38,7 @@ jobs:
     - name: Stop application
       run: |
         echo "Stopping application"
-        sudo systemctl stop fitness-api
+        sudo systemctl stop fitness-api || true
 
     - name: Copy Jar to /opt/PT.Fitness-Api
       run: |
