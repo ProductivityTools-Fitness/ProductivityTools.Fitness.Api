@@ -1,0 +1,58 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  build-and-deploy:
+    # We use self-hosted because the deployment steps (systemctl, copying to /opt)
+    # suggest they need to run directly on the target deployment server.
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Identify user running the workflow (similar to 'Identify User' stage in Jenkinsfile)
+    - name: Identify User
+      run: |
+        echo "Checking which user is running the commands..."
+        whoami
+        id
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: 'gradle'
+
+    - name: Build with Gradle
+      run: |
+        chmod +x gradlew
+        ./gradlew --stop # Stop any running daemons
+        ./gradlew clean build --rerun-tasks
+
+    - name: Stop application
+      run: |
+        echo "Stopping application"
+        sudo systemctl stop fitness-api
+
+    - name: Copy Jar to /opt/PT.Fitness-Api
+      run: |
+        echo "Copying JAR to /opt/PT.Fitness-Api"
+        # umask 002 keeping it here
+        umask 002
+        JAR=build/libs/fitness-api-0.0.1-SNAPSHOT.jar
+        if [ ! -f "$JAR" ]; then
+          echo "Jar not found at $JAR"; exit 1
+        fi
+        sudo mkdir -p /opt/PT.Fitness-Api
+        sudo cp "$JAR" /opt/PT.Fitness-Api/
+
+    - name: Start application
+      run: |
+        echo "Starting application"
+        sudo systemctl start fitness-api
