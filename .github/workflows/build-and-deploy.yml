@@ -52,7 +52,17 @@ jobs:
         sudo mkdir -p /opt/PT.Fitness-Api
         sudo cp "$JAR" /opt/PT.Fitness-Api/
 
+    - name: Configure and copy systemd service file
+      run: |
+        echo "Configuring and copying systemd service file..."
+        CURRENT_USER=$(whoami)
+        cp deployment/fitness-api.service /tmp/fitness-api.service
+        sed -i "s/USER_PLACEHOLDER/$CURRENT_USER/g" /tmp/fitness-api.service
+        sudo mv /tmp/fitness-api.service /etc/systemd/system/fitness-api.service
+        sudo systemctl daemon-reload
+
     - name: Start application
       run: |
         echo "Starting application"
         sudo systemctl start fitness-api
+

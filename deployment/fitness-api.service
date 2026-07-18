@@ -1,0 +1,14 @@
+[Unit]
+Description=Fitness API Service
+After=syslog.target network.target
+
+[Service]
+User=USER_PLACEHOLDER
+ExecStart=/usr/bin/java -jar /opt/PT.Fitness-Api/fitness-api-0.0.1-SNAPSHOT.jar
+SuccessExitStatus=143
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
