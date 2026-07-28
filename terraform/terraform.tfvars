@@ -1,4 +1,7 @@
-project_id   = "pwujczyk-pt"
-region       = "europe-central2" # Warszawa
-network_name = "fitness2"
-subnet_cidr  = "10.10.0.0/24"
+project_id    = "pwujczyk-pt"
+region        = "europe-central2" # Warsaw
+network_name  = "fitness"
+subnet_cidr   = "10.10.0.0/24"
+zone          = "europe-central2-a"
+instance_name = "fitness-vm"
+machine_type  = "e2-medium"
