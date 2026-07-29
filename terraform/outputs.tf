@@ -47,3 +47,8 @@ output "instance_external_ip" {
   description = "Public external IP address of the virtual machine"
   value       = google_compute_instance.fitness_vm.network_interface[0].access_config[0].nat_ip
 }
+
+output "instance_web_url" {
+  description = "URL to access the web page hosted on the VM"
+  value       = "http://${google_compute_instance.fitness_vm.network_interface[0].access_config[0].nat_ip}"
+}

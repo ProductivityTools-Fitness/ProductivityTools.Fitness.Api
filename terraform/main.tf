@@ -62,7 +62,28 @@ resource "google_compute_network_firewall_policy_rule" "allow_http" {
   }
 }
 
-# 4. Virtual Machine in the Warsaw subnetwork
+# Rule within the Firewall Policy allowing SSH (TCP port 22) from IAP and any source
+resource "google_compute_network_firewall_policy_rule" "allow_ssh" {
+  firewall_policy = google_compute_network_firewall_policy.fitness_basic_access.name
+  description     = "Allows SSH traffic including browser-based SSH via Google Cloud IAP"
+  priority        = 1001
+  direction       = "INGRESS"
+  action          = "allow"
+  rule_name       = "allow-ssh"
+
+  match {
+    src_ip_ranges = [
+      "35.235.240.0/20", # Google Cloud Identity-Aware Proxy (IAP) CIDR used by Cloud Console Browser SSH
+      "0.0.0.0/0"
+    ]
+    layer4_configs {
+      ip_protocol = "tcp"
+      ports       = ["22"]
+    }
+  }
+}
+
+# 4. Virtual Machine in the Warsaw subnetwork with Nginx serving a web page
 resource "google_compute_instance" "fitness_vm" {
   name         = var.instance_name
   machine_type = var.machine_type
@@ -87,4 +108,21 @@ resource "google_compute_instance" "fitness_vm" {
   metadata = {
     enable-oslogin = "TRUE"
   }
+
+  # Startup script to install Nginx and serve a sample page on port 80
+  metadata_startup_script = <<-EOF
+    #!/bin/bash
+    apt-get update
+    apt-get install -y nginx
+    cat << 'HTML' > /var/www/html/index.html
+    <!DOCTYPE html>
+    <html lang="en">
+    <body>
+        <h1>Fitness API Web Server</h1>
+        <p>The virtual machine is running and actively serving HTTP traffic on port 80.</p>
+    </body>
+    </html>
+    HTML
+    systemctl restart nginx
+  EOF
 }
