@@ -14,6 +14,12 @@ provider "google" {
   region  = var.region
 }
 
+# Enable Cloud Identity-Aware Proxy (IAP) API for browser-based SSH access
+resource "google_project_service" "iap" {
+  service            = "iap.googleapis.com"
+  disable_on_destroy = false
+}
+
 # 1. Main VPC (Custom Subnet Mode)
 resource "google_compute_network" "vpc_network" {
   name                    = var.network_name
@@ -106,23 +112,53 @@ resource "google_compute_instance" "fitness_vm" {
   }
 
   metadata = {
-    enable-oslogin = "TRUE"
+    enable-oslogin = "FALSE"
   }
 
-  # Startup script to install Nginx and serve a sample page on port 80
+  # Startup script: installs JDK 21, dependencies, and automatically configures GitHub Self-Hosted Runner
   metadata_startup_script = <<-EOF
     #!/bin/bash
+    set -e
+
+    # 1. Install prerequisites & OpenJDK 21
     apt-get update
-    apt-get install -y nginx
-    cat << 'HTML' > /var/www/html/index.html
-    <!DOCTYPE html>
-    <html lang="en">
-    <body>
-        <h1>Fitness API Web Server</h1>
-        <p>The virtual machine is running and actively serving HTTP traffic on port 80.</p>
-    </body>
-    </html>
-    HTML
-    systemctl restart nginx
+    apt-get install -y curl jq git wget tar sudo openjdk-21-jdk
+
+    # 2. Prepare application directory
+    mkdir -p /opt/PT.Fitness-Api
+    chmod 777 /opt/PT.Fitness-Api
+
+    # 3. Setup GitHub Actions Self-Hosted Runner if credentials are provided
+    REPO="${var.github_repo}"
+    PAT="${var.github_pat}"
+
+    if [ -n "$REPO" ] && [ -n "$PAT" ]; then
+      echo "Setting up GitHub Actions Runner for $REPO..."
+      mkdir -p /opt/actions-runner
+      cd /opt/actions-runner
+
+      # Download runner package
+      RUNNER_VERSION=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | jq -r .tag_name | sed 's/v//')
+      RUNNER_VERSION="$${RUNNER_VERSION:-2.317.0}"
+
+      curl -o actions-runner-linux-x64.tar.gz -L "https://github.com/actions/runner/releases/download/v$${RUNNER_VERSION}/actions-runner-linux-x64-$${RUNNER_VERSION}.tar.gz"
+      tar xzf ./actions-runner-linux-x64.tar.gz
+
+      # Obtain registration token from GitHub API
+      REG_TOKEN=$(curl -sX POST \
+        -H "Accept: application/vnd.github+json" \
+        -H "Authorization: Bearer $${PAT}" \
+        "https://api.github.com/repos/$${REPO}/actions/runners/registration-token" | jq -r .token)
+
+      if [ -n "$REG_TOKEN" ] && [ "$REG_TOKEN" != "null" ]; then
+        export RUNNER_ALLOW_RUNASROOT="1"
+        ./config.sh --url "https://github.com/$${REPO}" --token "$${REG_TOKEN}" --name "${var.instance_name}" --unattended --replace
+        ./svc.sh install root
+        ./svc.sh start
+        echo "GitHub Actions Runner registered and running as a systemd service!"
+      else
+        echo "Error: Could not retrieve registration token from GitHub API."
+      fi
+    fi
   EOF
 }

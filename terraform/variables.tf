@@ -39,3 +39,16 @@ variable "machine_type" {
   description = "Machine type for the virtual machine"
   default     = "e2-medium"
 }
+
+variable "github_repo" {
+  type        = string
+  description = "GitHub repository in format owner/repo (e.g. pwujczyk/ProductivityTools.Fitness.Api)"
+  default     = ""
+}
+
+variable "github_pat" {
+  type        = string
+  description = "GitHub Personal Access Token with repo administration/runner permissions"
+  sensitive   = true
+  default     = ""
+}
