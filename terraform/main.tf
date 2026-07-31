@@ -120,9 +120,15 @@ resource "google_compute_instance" "fitness_vm" {
     #!/bin/bash
     set -e
 
-    # 1. Install prerequisites & OpenJDK 21
+    # 1. Install prerequisites & Java 21 (Adoptium Temurin 21)
     apt-get update
-    apt-get install -y curl jq git wget tar sudo openjdk-21-jdk
+    apt-get install -y curl jq git wget tar sudo ca-certificates gnupg
+
+    mkdir -p /etc/apt/keyrings
+    wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public | gpg --dearmor --yes -o /etc/apt/keyrings/adoptium.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb bookworm main" > /etc/apt/sources.list.d/adoptium.list
+    apt-get update
+    apt-get install -y temurin-21-jdk || apt-get install -y -t bookworm-backports openjdk-21-jdk
 
     # 2. Prepare application directory
     mkdir -p /opt/PT.Fitness-Api
