@@ -7,18 +7,23 @@ on:
 
 jobs:
   build-and-deploy:
-    # We use self-hosted because the deployment steps (systemctl, copying to /opt)
-    # suggest they need to run directly on the target deployment server.
-    runs-on: self-hosted
+    strategy:
+      fail-fast: false # Pozwala jednemu runnerowi dokończyć wdrożenie nawet jeśli drugi napotka błąd
+      matrix:
+        target-runner:
+          - "fitness-vm"
+          - "T460Ubuntu1-ProductivityTools-Fitness_ProductivityTools.Fitness.Api"
+
+    runs-on: [ self-hosted, "${{ matrix.target-runner }}" ]
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Identify user running the workflow (similar to 'Identify User' stage in Jenkinsfile)
+    # Identify user running the workflow
     - name: Identify User
       run: |
-        echo "Checking which user is running the commands..."
+        echo "Running on runner: ${{ matrix.target-runner }}"
         whoami
         id
 
@@ -32,7 +37,7 @@ jobs:
     - name: Build with Gradle
       run: |
         chmod +x gradlew
-        ./gradlew --stop # Stop any running daemons
+        ./gradlew --stop
         ./gradlew clean build --rerun-tasks
 
     - name: Stop application
@@ -43,7 +48,6 @@ jobs:
     - name: Copy Jar to /opt/PT.Fitness-Api
       run: |
         echo "Copying JAR to /opt/PT.Fitness-Api"
-        # umask 002 keeping it here
         umask 002
         JAR=build/libs/fitness-api-0.0.1-SNAPSHOT.jar
         if [ ! -f "$JAR" ]; then
@@ -65,4 +69,3 @@ jobs:
       run: |
         echo "Starting application"
         sudo systemctl start fitness-api
-
