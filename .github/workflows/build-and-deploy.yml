@@ -12,7 +12,7 @@ jobs:
       matrix:
         target-runner:
           - "fitness-vm"
-          - "T460Ubuntu1-ProductivityTools-Fitness_ProductivityTools.Fitness.Api"
+          - "T460Ubuntu1"
 
     runs-on: [ self-hosted, "${{ matrix.target-runner }}" ]
 
