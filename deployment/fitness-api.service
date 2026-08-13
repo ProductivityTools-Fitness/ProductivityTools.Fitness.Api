@@ -4,7 +4,10 @@ After=syslog.target network.target
 
 [Service]
 User=USER_PLACEHOLDER
+EnvironmentFile=-/opt/PT.Fitness-Api/fitness-api.env
 ExecStart=/usr/bin/java -jar /opt/PT.Fitness-Api/fitness-api-0.0.1-SNAPSHOT.jar
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 SuccessExitStatus=143
 TimeoutStopSec=10
 Restart=on-failure

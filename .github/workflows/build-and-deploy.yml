@@ -56,9 +56,20 @@ jobs:
         sudo mkdir -p /opt/PT.Fitness-Api
         sudo cp "$JAR" /opt/PT.Fitness-Api/
 
-    - name: Configure and copy systemd service file
+    - name: Configure environment variables and systemd service
+      env:
+        DB_PASS: ${{ secrets.DB_PASSWORD }}
       run: |
-        echo "Configuring and copying systemd service file..."
+        echo "Configuring environment variables and systemd service file..."
+        
+        # 1. Create secure environment file with DB password
+        if [ -n "$DB_PASS" ]; then
+          echo "DB_PASSWORD=$DB_PASS" > /tmp/fitness-api.env
+          sudo mv /tmp/fitness-api.env /opt/PT.Fitness-Api/fitness-api.env
+          sudo chmod 600 /opt/PT.Fitness-Api/fitness-api.env
+        fi
+
+        # 2. Configure and install systemd service
         CURRENT_USER=$(whoami)
         cp deployment/fitness-api.service /tmp/fitness-api.service
         sed -i "s/USER_PLACEHOLDER/$CURRENT_USER/g" /tmp/fitness-api.service
