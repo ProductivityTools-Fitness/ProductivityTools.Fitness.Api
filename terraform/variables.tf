@@ -52,3 +52,40 @@ variable "github_pat" {
   sensitive   = true
   default     = ""
 }
+
+variable "db_instance_name" {
+  type        = string
+  description = "Base name for Cloud SQL PostgreSQL instance"
+  default     = "fitness-db"
+}
+
+variable "db_tier" {
+  type        = string
+  description = "Machine tier for Cloud SQL PostgreSQL (e.g. db-f1-micro, db-custom-1-3840)"
+  default     = "db-f1-micro"
+}
+
+variable "db_version" {
+  type        = string
+  description = "PostgreSQL database version"
+  default     = "POSTGRES_18"
+}
+
+variable "db_name" {
+  type        = string
+  description = "Name of the default PostgreSQL database"
+  default     = "cloudsql"
+}
+
+variable "db_user" {
+  type        = string
+  description = "Username for the PostgreSQL database"
+  default     = "postgres"
+}
+
+variable "db_password" {
+  type        = string
+  description = "Password for the PostgreSQL database user"
+  sensitive   = true
+  default     = "Pawel123"
+}

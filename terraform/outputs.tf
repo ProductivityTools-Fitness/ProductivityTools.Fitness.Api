@@ -52,3 +52,28 @@ output "instance_web_url" {
   description = "URL to access the web page hosted on the VM"
   value       = "http://${google_compute_instance.fitness_vm.network_interface[0].access_config[0].nat_ip}"
 }
+
+output "db_instance_name" {
+  description = "Name of the Cloud SQL PostgreSQL instance"
+  value       = google_sql_database_instance.postgres.name
+}
+
+output "db_connection_name" {
+  description = "Connection name for Cloud SQL instance"
+  value       = google_sql_database_instance.postgres.connection_name
+}
+
+output "db_psc_service_attachment" {
+  description = "Service attachment link of the Cloud SQL PSC instance"
+  value       = google_sql_database_instance.postgres.psc_service_attachment_link
+}
+
+output "db_psc_ip" {
+  description = "Internal IP address of the Cloud SQL PSC endpoint inside your Warsaw subnetwork"
+  value       = google_compute_address.db_psc_ip.address
+}
+
+output "db_jdbc_url" {
+  description = "Suggested Spring Boot JDBC URL using PSC endpoint IP inside Warsaw subnet"
+  value       = "jdbc:postgresql://${google_compute_address.db_psc_ip.address}:5432/${google_sql_database.database.name}"
+}
