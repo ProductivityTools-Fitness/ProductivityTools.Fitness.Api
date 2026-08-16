@@ -175,14 +175,9 @@ resource "google_compute_instance" "fitness_vm" {
   EOF
 }
 
-# Random suffix for Cloud SQL instance name (prevents naming collisions upon recreation)
-resource "random_id" "db_name_suffix" {
-  byte_length = 4
-}
-
 # 5. Cloud SQL PostgreSQL Instance with Private Service Connect (PSC) enabled
 resource "google_sql_database_instance" "postgres" {
-  name                = "${var.db_instance_name}-${random_id.db_name_suffix.hex}"
+  name                = var.db_instance_name
   database_version    = var.db_version
   region              = var.region
   deletion_protection = false
