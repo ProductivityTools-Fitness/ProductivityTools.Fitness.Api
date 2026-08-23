@@ -5,11 +5,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/debug")
+@RequestMapping("/api/debug")
 public class DebugController {
     
     @GetMapping("/hello")
     public String Hello() {
         return "Hello";
+    }
+
+    
+    @GetMapping("/appName")
+    public String AppName() {
+        return "PTFitness";
+    }
+    
+    @GetMapping("/date")
+    public String Date() {
+        return new java.util.Date().toString();
     }
 }
