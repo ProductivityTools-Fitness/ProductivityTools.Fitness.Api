@@ -56,7 +56,7 @@ variable "github_pat" {
 variable "db_instance_name" {
   type        = string
   description = "Base name for Cloud SQL PostgreSQL instance"
-  default     = "fitness-db"
+  default     = "ptfitness"
 }
 
 variable "db_tier" {
