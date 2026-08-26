@@ -33,8 +33,11 @@ public class DebugController {
         return LocalDateTime.now().format(DATE_TIME_FORMATTER);
     }
 
-    @GetMapping("/serverName")
+    @GetMapping({"/serverName", "/ServerName"})
     public String ServerName() {
-        return jdbcTemplate.queryForObject("SELECT COALESCE(inet_server_addr()::text, 'localhost')", String.class);
+        return jdbcTemplate.queryForObject(
+                "SELECT COALESCE(NULLIF(current_setting('cluster_name', true), ''), current_database())",
+                String.class
+        );
     }
 }
