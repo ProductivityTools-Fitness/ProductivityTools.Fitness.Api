@@ -12,7 +12,8 @@ public class CorsConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOrigins(
                         "https://service-status.productivitytools.top",
-                        "https://pt-service-status-93484780890.us-central1.run.app"
+                        "https://pt-service-status-93484780890.us-central1.run.app",
+                        "https://localhost:4200"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH")
                 .allowedHeaders("*")
