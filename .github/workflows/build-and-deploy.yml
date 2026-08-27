@@ -10,9 +10,15 @@ jobs:
     strategy:
       fail-fast: false # Pozwala jednemu runnerowi dokończyć wdrożenie nawet jeśli drugi napotka błąd
       matrix:
-        target-runner:
-          - "fitness-vm"
-          - "T460Ubuntu1"
+        include:
+          - target-runner: "fitness-vm"
+            server-port: "80"
+            db-url: "jdbc:postgresql://10.10.0.3:5432/cloudsql"
+            db-user: "postgres"
+          - target-runner: "T460Ubuntu1"
+            server-port: "8084"
+            db-url: "jdbc:postgresql://localhost:5432/ptfitness"
+            db-user: "postgres"
 
     runs-on: [ self-hosted, "${{ matrix.target-runner }}" ]
 
@@ -58,16 +64,26 @@ jobs:
 
     - name: Configure environment variables and systemd service
       env:
+        SERVER_PORT: ${{ matrix.server-port }}
+        DB_URL: ${{ matrix.db-url }}
+        DB_USER: ${{ matrix.db-user }}
         DB_PASS: ${{ secrets.DB_PASSWORD }}
       run: |
         echo "Configuring environment variables and systemd service file..."
         
-        # 1. Create secure environment file with DB password
+        # 1. Create secure environment file with runner-specific configuration
+        cat << EOF > /tmp/fitness-api.env
+        SERVER_PORT=$SERVER_PORT
+        DB_URL=$DB_URL
+        DB_USERNAME=$DB_USER
+        EOF
+
         if [ -n "$DB_PASS" ]; then
-          echo "DB_PASSWORD=$DB_PASS" > /tmp/fitness-api.env
-          sudo mv /tmp/fitness-api.env /opt/PT.Fitness-Api/fitness-api.env
-          sudo chmod 600 /opt/PT.Fitness-Api/fitness-api.env
+          echo "DB_PASSWORD=$DB_PASS" >> /tmp/fitness-api.env
         fi
+
+        sudo mv /tmp/fitness-api.env /opt/PT.Fitness-Api/fitness-api.env
+        sudo chmod 600 /opt/PT.Fitness-Api/fitness-api.env
 
         # 2. Configure and install systemd service
         CURRENT_USER=$(whoami)
