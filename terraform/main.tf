@@ -59,17 +59,17 @@ resource "google_compute_network_firewall_policy_association" "fitness_policy_as
 # Single rule within the Firewall Policy allowing port 80 (HTTP)
 resource "google_compute_network_firewall_policy_rule" "allow_http" {
   firewall_policy = google_compute_network_firewall_policy.fitness_basic_access.name
-  description     = "Allows incoming HTTP traffic on port 80"
+  description     = "Allows incoming HTTP traffic on port 8084"
   priority        = 1000
   direction       = "INGRESS"
   action          = "allow"
-  rule_name       = "allow-http-80"
+  rule_name       = "allow-http-8084"
 
   match {
     src_ip_ranges = ["0.0.0.0/0"]
     layer4_configs {
       ip_protocol = "tcp"
-      ports       = ["80"]
+      ports       = ["8084"]
     }
   }
 }

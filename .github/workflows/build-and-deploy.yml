@@ -13,7 +13,7 @@ jobs:
         include:
           - target-runner: "fitness-vm"
             server-port: "8084"
-            db-url: "jdbc:postgresql://10.10.0.2:5432/cloudsql"
+            db-url: "jdbc:postgresql://10.10.0.2:5432/ptfitness"
             db-user: "postgres"
           - target-runner: "T460Ubuntu1"
             server-port: "8084"
