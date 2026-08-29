@@ -1,10 +1,4 @@
-<<<<<<< HEAD
-=======
-
 ## Debug
-
-### Github actoin
->>>>>>> 5d7a621 (readme)
 Check if github action is working on the ububtu
 
 ```
@@ -18,6 +12,7 @@ sudo journalctl -u fitness-api.service -n 100 --no-pager
 sudo systemctl restart fitness-api.service
 ```
 
+
 ### Posgresql
 
 ```
@@ -25,6 +20,20 @@ systemctl status postgresql
 pg_lsclusters
 sudo ufw allow 5432/tcp
 ```
+
+### Password
+Password that application uses is written in the /opt/PT.Fitness-Api/fintess-api.env
+It is created by github action
+```
+    - name: Configure environment variables and systemd service
+      env:
+        SERVER_PORT: ${{ matrix.server-port }}
+        DB_URL: ${{ matrix.db-url }}
+        DB_USER: ${{ matrix.db-user }}
+        DB_PASS: ${{ secrets.DB_PASSWORD }}
+```
+
+Password on the Cloud is taken from the terraform.tfvars
 
 ### Cloud
 Resources that were needed:

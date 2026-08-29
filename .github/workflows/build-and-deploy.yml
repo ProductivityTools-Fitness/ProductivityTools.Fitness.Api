@@ -12,7 +12,7 @@ jobs:
       matrix:
         include:
           - target-runner: "fitness-vm"
-            server-port: "80"
+            server-port: "8084"
             db-url: "jdbc:postgresql://10.10.0.2:5432/cloudsql"
             db-user: "postgres"
           - target-runner: "T460Ubuntu1"
