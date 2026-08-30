@@ -74,7 +74,7 @@ variable "db_version" {
 variable "db_name" {
   type        = string
   description = "Name of the default PostgreSQL database"
-  default     = "cloudsql"
+  default     = "ptfitness"
 }
 
 variable "db_user" {

@@ -14,6 +14,7 @@ public class CorsConfig implements WebMvcConfigurer {
                         "https://service-status.productivitytools.top",
                         "https://pt-service-status-93484780890.us-central1.run.app",
                         "https://localhost:4200",
+                        "http://localhost:4200"
                         "https://pts-fitness.web.app"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH")
