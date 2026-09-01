@@ -236,3 +236,40 @@ resource "google_compute_forwarding_rule" "db_psc_endpoint" {
   target                = google_sql_database_instance.postgres.psc_service_attachment_link
   load_balancing_scheme = ""
 }
+
+# 7. Development/Test Cloud SQL PostgreSQL Instance (with Public IP for Cloud SQL Auth Proxy)
+resource "google_sql_database_instance" "postgres_dev" {
+  name                = var.dev_db_instance_name
+  database_version    = var.db_version
+  region              = var.region
+  deletion_protection = false
+
+  settings {
+    tier = var.db_tier
+
+    ip_configuration {
+      ipv4_enabled = true # Enables Public IP for Cloud SQL Auth Proxy access
+    }
+
+    backup_configuration {
+      enabled = false
+    }
+  }
+
+  depends_on = [
+    google_project_service.sqladmin
+  ]
+}
+
+# Default Database inside Dev Cloud SQL
+resource "google_sql_database" "database_dev" {
+  name     = var.db_name
+  instance = google_sql_database_instance.postgres_dev.name
+}
+
+# PostgreSQL Database User inside Dev Cloud SQL
+resource "google_sql_user" "db_user_dev" {
+  name     = var.db_user
+  instance = google_sql_database_instance.postgres_dev.name
+  password = var.db_password
+}

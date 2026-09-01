@@ -59,6 +59,12 @@ variable "db_instance_name" {
   default     = "ptfitness"
 }
 
+variable "dev_db_instance_name" {
+  type        = string
+  description = "Name for the Development/Test Cloud SQL PostgreSQL instance (with Public IP for Cloud SQL Auth Proxy)"
+  default     = "ptfitness-dev"
+}
+
 variable "db_tier" {
   type        = string
   description = "Machine tier for Cloud SQL PostgreSQL (e.g. db-f1-micro, db-custom-1-3840)"

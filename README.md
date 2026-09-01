@@ -8,9 +8,8 @@ REST API service for fitness tracking, workout management, and training schedule
 
 * **Google Cloud Platform (GCP)**:
   * **Compute Engine VM (`fitness-vm`)**: Hosts the Spring Boot application running as a `systemd` service.
-  * **Cloud SQL (PostgreSQL 18)**: Managed database instance (`ptfitness`).
-  * **Private Service Connect (PSC)**: Provides a private, internal TCP tunnel (`10.10.0.2:5432`) directly from the VPC subnet to Cloud SQL without routing through the public internet.
-  * **Public IP (mTLS)**: Enabled on Cloud SQL specifically for **Cloud SQL Auth Proxy** support during local development. Access is strictly protected by Google Cloud IAM and dynamic client certificates.
+  * **Cloud SQL Production (`ptfitness`)**: Private instance using **Private Service Connect (PSC)** (`10.10.0.2:5432`).
+  * **Cloud SQL Development (`pt-fitness-dev`)**: Development/testing instance with **Public IP** enabled for seamless local connections via **Cloud SQL Auth Proxy**.
 * **CI/CD Deployment**:
   * Automated GitHub Actions matrix workflow deploying simultaneously to self-hosted runners (`fitness-vm` and local servers).
 
@@ -18,9 +17,11 @@ REST API service for fitness tracking, workout management, and training schedule
 
 ## 💻 Local Development & Connecting to GCP Cloud SQL
 
-If you do not have PostgreSQL installed locally, you can easily connect your local Spring Boot instance to the GCP Cloud SQL database using either **Cloud SQL Auth Proxy** (recommended) or an **SSH Tunnel**.
+You can connect your local development environment to Cloud SQL in GCP using one of two methods:
 
-### Method 1: Cloud SQL Auth Proxy (Recommended)
+### Option A: Cloud SQL Auth Proxy (Connecting to `pt-fitness-dev`)
+
+Since `pt-fitness-dev` has Public IP enabled, you can connect directly using Google's official Cloud SQL Proxy:
 
 1. **Install Cloud SQL Proxy**:
    ```bash
@@ -36,31 +37,25 @@ If you do not have PostgreSQL installed locally, you can easily connect your loc
 
 3. **Start the Proxy**:
    ```bash
-   cloud-sql-proxy pwujczyk-pt:europe-central2:ptfitness --port 5432
+   cloud-sql-proxy pwujczyk-pt:europe-central2:ptfitness-dev --port 5432
    ```
-   *The proxy will listen locally on `127.0.0.1:5432` and forward encrypted traffic to Cloud SQL.*
 
 4. **Run the Spring Boot Application**:
-   Your default [`src/main/resources/application.properties`](src/main/resources/application.properties) points to `localhost:5432/ptfitness`:
-   ```properties
-   spring.datasource.url=jdbc:postgresql://localhost:5432/ptfitness
-   spring.datasource.username=postgres
-   spring.datasource.password=${DB_PASSWORD:Pawel123}
-   ```
-   Run the project in your IDE or via command line:
    ```bash
    ./gradlew bootRun
    ```
 
 ---
 
-### Method 2: SSH Tunnel via VM
+### Option B: SSH Tunnel (Connecting to `ptfitness` PSC instance)
 
-If you prefer not using Cloud SQL Proxy, you can tunnel port 5432 directly through the Compute Engine VM:
+To connect to the private production instance `ptfitness`, open an SSH tunnel through `fitness-vm`:
 
 ```bash
 gcloud compute ssh fitness-vm --zone=europe-central2-a --project=pwujczyk-pt -- -L 5432:10.10.0.2:5432 -N
 ```
+
+Then start your Spring Boot application locally (`./gradlew bootRun`).
 
 ---
 
@@ -164,5 +159,10 @@ cloud-sql-proxy pwujczyk-pt:europe-central2:ptfitness --port 5432
 
 gcloud auth application-default login
 
-### Tunnel through vm to debug locally
-gcloud compute ssh fitness-vm --zone=europe-central2-a --project=pwujczyk-pt -- -L 5432:10.10.0.2:5432 -N
+### Gradle
+
+````
+export DB_PASSWORD="dfsafafa"
+./gradlew bootrun^
+````
+

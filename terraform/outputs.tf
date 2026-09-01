@@ -77,3 +77,18 @@ output "db_jdbc_url" {
   description = "Suggested Spring Boot JDBC URL using PSC endpoint IP inside Warsaw subnet"
   value       = "jdbc:postgresql://${google_compute_address.db_psc_ip.address}:5432/${google_sql_database.database.name}"
 }
+
+output "dev_db_instance_name" {
+  description = "Name of the Development Cloud SQL PostgreSQL instance"
+  value       = google_sql_database_instance.postgres_dev.name
+}
+
+output "dev_db_connection_name" {
+  description = "Connection name for Dev Cloud SQL instance (used by Cloud SQL Auth Proxy)"
+  value       = google_sql_database_instance.postgres_dev.connection_name
+}
+
+output "dev_db_public_ip" {
+  description = "Public IP address of the Dev Cloud SQL instance"
+  value       = google_sql_database_instance.postgres_dev.public_ip_address
+}
