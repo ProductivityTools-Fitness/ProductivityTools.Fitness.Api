@@ -13,6 +13,13 @@ public class ExerciseService {
     private final ExerciseRepository exerciseRepository;
 
     public List<Exercise> getExerciseList() {
-        return exerciseRepository.findAllByOrderByDayNumberAsc();
+        return exerciseRepository.findAllByOrderByNameAsc();
+    }
+
+    public List<Exercise> getAvailableExercises(Long userId) {
+        if (userId == null) {
+            return exerciseRepository.findByIsSystemTrueOrderByNameAsc();
+        }
+        return exerciseRepository.findAvailableExercisesForUser(userId);
     }
 }

@@ -15,13 +15,13 @@ import top.productivitytools.fitness.api.services.ExerciseService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/exercise")
+@RequestMapping("/api/exercise")
 @RequiredArgsConstructor
 public class ExerciseController {
     
     private final ExerciseService exerciseService;
 
-    @GetMapping
+    @GetMapping("/list")
     public List<Exercise> getExerciseList() {
         return exerciseService.getExerciseList();
     }
