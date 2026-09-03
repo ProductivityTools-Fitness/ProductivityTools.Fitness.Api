@@ -1,3 +1,8 @@
 package top.productivitytools.fitness.api.dto.requests;
 
-public record AddExercisesRequest(List<Long> exerciseIds) {}
+import java.util.List;
+
+public record AddExercisesRequest(
+    Long workoutId,
+    List<Long> exerciseIds
+) {}
