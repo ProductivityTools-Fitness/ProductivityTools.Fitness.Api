@@ -155,7 +155,7 @@ database:
 curl -o /usr/local/google/home/pwujczyk/cloud-sql-proxy https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.14.0/cloud-sql-proxy.linux.amd64
 chmod +x /usr/local/google/home/pwujczyk/cloud-sql-proxy
 
-cloud-sql-proxy pwujczyk-pt:europe-central2:ptfitness --port 5432
+./cloud-sql-proxy pwujczyk-pt:europe-central2:ptfitness-dev --port 5432
 
 gcloud auth application-default login
 
@@ -166,3 +166,7 @@ export DB_PASSWORD="dfsafafa"
 ./gradlew bootrun^
 ````
 
+
+## Ednpoints
+
+http://localhost:8084/api/exercise/list
