@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import top.productivitytools.fitness.api.entities.Workout;
 import top.productivitytools.fitness.api.services.WorkoutService;
+import top.productivitytools.fitness.api.dto.requests.AddExercisesRequest;
 
 import java.util.List;
 
@@ -23,4 +24,10 @@ public class WorkoutController {
     public Workout addWorkout(@RequestBody Workout workout) {
         return workoutService.save(workout);
     }
+
+        public Workout addExerciseToWorkout(
+        @PathVariable Long workoutId,
+        @RequestBody AddExercisesRequest request){
+            return workoutService.addExercisesToWorkout(workoutId,request)
+        }
 }

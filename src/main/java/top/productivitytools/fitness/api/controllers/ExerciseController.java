@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.productivitytools.fitness.api.entities.Exercise;
+import top.productivitytools.fitness.api.entities.Workout;
 import top.productivitytools.fitness.api.services.ExerciseService;
 
 import java.util.List;
