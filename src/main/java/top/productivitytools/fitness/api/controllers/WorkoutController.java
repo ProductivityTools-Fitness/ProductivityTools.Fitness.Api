@@ -2,6 +2,7 @@ package top.productivitytools.fitness.api.controllers;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import top.productivitytools.fitness.api.entities.Workout;
@@ -21,6 +22,17 @@ public class WorkoutController {
     public List<Workout> getAllWorkouts() {
         return workoutService.getAllWorkouts();
     }
+
+    @GetMapping ("/{workoutId}")
+    public Workout getWorkoutDetails(
+        @PathVariable (required=true) Long workoutId)
+        {
+        if (workoutId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Workout ID must be provided in the URL path");
+        }
+        return workoutService.getWorkoutById(workoutId)
+            .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"workout not found"));
+        }
 
     @PostMapping({"/add", ""})
     public Workout addWorkout(@RequestBody Workout workout) {

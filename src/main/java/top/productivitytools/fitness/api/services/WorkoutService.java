@@ -2,6 +2,7 @@ package top.productivitytools.fitness.api.services;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -37,7 +38,7 @@ public class WorkoutService {
     }
 
     public Optional<Workout> getWorkoutById(Long id) {
-        return repository.findById(id);
+        return repository.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatusCode.NOT_FOUND,"workout not found"));
     }
 
     @Transactional
