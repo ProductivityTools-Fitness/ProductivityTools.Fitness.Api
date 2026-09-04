@@ -1,9 +1,12 @@
 package top.productivitytools.fitness.api.controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import top.productivitytools.fitness.api.entities.Exercise;
 import top.productivitytools.fitness.api.services.ExerciseService;
 
@@ -20,4 +23,11 @@ public class ExerciseController {
     public List<Exercise> getExerciseList() {
         return exerciseService.getExerciseList();
     }
+
+    @GetMapping("/{id}")
+    public Exercise getExerciseById(@PathVariable Long id) {
+        return exerciseService.getExerciseById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exercise not found with id: " + id));
+    }
 }
+

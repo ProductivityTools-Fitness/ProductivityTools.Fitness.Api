@@ -6,6 +6,7 @@ import top.productivitytools.fitness.api.entities.Exercise;
 import top.productivitytools.fitness.api.repositories.ExerciseRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,4 +24,10 @@ public class ExerciseService {
         }
         return exerciseRepository.findAvailableExercisesForUser(userId);
     }
+
+    public Optional<Exercise> getExerciseById(Long id) {
+        return exerciseRepository.findById(id);
+    }
 }
+
+
