@@ -10,6 +10,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ExerciseService {
+
     private final ExerciseRepository exerciseRepository;
 
     public List<Exercise> getExerciseList() {

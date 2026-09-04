@@ -39,6 +39,18 @@ public class WorkoutController {
         return workoutService.save(workout);
     }
 
+    @RequestMapping(value = {"/{workoutId}/title", "/{workoutId}"}, method = {RequestMethod.PUT, RequestMethod.POST, RequestMethod.PATCH})
+    public Workout updateWorkoutTitle(
+            @PathVariable Long workoutId,
+            @RequestBody Workout workout) {
+        String newTitle = workout != null ? workout.getTitle() : null;
+        if (newTitle == null || newTitle.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title cannot be empty");
+        }
+        return workoutService.updateTitle(workoutId, newTitle);
+    }
+
+
     @PostMapping({"/exercise", "/exercises", "/{workoutId}/exercise", "/{workoutId}/exercises"})
     public Workout addExerciseToWorkout(
             @PathVariable(required = false) Long workoutId,

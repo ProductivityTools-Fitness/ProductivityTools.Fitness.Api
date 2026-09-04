@@ -38,7 +38,7 @@ public class WorkoutService {
     }
 
     public Optional<Workout> getWorkoutById(Long id) {
-        return repository.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatusCode.NOT_FOUND,"workout not found"));
+        return repository.findById(id);
     }
 
     @Transactional
@@ -51,8 +51,23 @@ public class WorkoutService {
                     .orElseGet(this::getOrCreateDefaultUser);
             workout.setUser(existingUser);
         }
+        boolean isNew = workout.getId() == null;
+        Workout saved = repository.save(workout);
+        if (isNew && (saved.getTitle() == null || saved.getTitle().isBlank() || saved.getTitle().equalsIgnoreCase("Log Workout") || saved.getTitle().equalsIgnoreCase("New workout"))) {
+            saved.setTitle("Trening #" + saved.getId());
+            saved = repository.save(saved);
+        }
+        return saved;
+    }
+
+    @Transactional
+    public Workout updateTitle(Long workoutId, String title) {
+        Workout workout = repository.findById(workoutId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workout not found with id: " + workoutId));
+        workout.setTitle(title);
         return repository.save(workout);
     }
+
 
     @Transactional
     public Workout addExercisesToWorkout(Long workoutId, AddExercisesRequest request) {
