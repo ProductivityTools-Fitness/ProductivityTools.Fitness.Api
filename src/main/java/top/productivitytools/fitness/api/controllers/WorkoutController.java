@@ -17,7 +17,7 @@ public class WorkoutController {
     
     private final WorkoutService workoutService;
 
-    @GetMapping
+    @GetMapping("/list")
     public List<Workout> getAllWorkouts() {
         return workoutService.getAllWorkouts();
     }
