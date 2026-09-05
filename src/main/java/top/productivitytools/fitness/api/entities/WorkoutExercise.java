@@ -45,4 +45,17 @@ public class WorkoutExercise {
 
     @Column(name = "created_at")
     private OffsetDateTime createdAt = OffsetDateTime.now();
+
+    public WorkoutSet addSet() {
+        WorkoutSet previousSet = sets.isEmpty() ? null : sets.get(sets.size() - 1);
+        WorkoutSet newSet = new WorkoutSet();
+        newSet.setWorkoutExercise(this);
+        newSet.setSetNumber(sets.size() + 1);
+        if (previousSet != null) {
+            newSet.setWeightKg(previousSet.getWeightKg());
+            newSet.setReps(previousSet.getReps());
+        }
+        this.sets.add(newSet);
+        return newSet;
+    }
 }

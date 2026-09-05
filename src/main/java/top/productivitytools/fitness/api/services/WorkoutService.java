@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import top.productivitytools.fitness.api.dto.requests.AddExercisesRequest;
+import top.productivitytools.fitness.api.dto.requests.AddSetRequest;
 import top.productivitytools.fitness.api.entities.Exercise;
 import top.productivitytools.fitness.api.entities.FitnessUser;
 import top.productivitytools.fitness.api.entities.Workout;
@@ -16,6 +17,7 @@ import top.productivitytools.fitness.api.repositories.ExerciseRepository;
 import top.productivitytools.fitness.api.repositories.FitnessUserRepository;
 import top.productivitytools.fitness.api.repositories.WorkoutExerciseRepository;
 import top.productivitytools.fitness.api.repositories.WorkoutRepository;
+import top.productivitytools.fitness.api.repositories.WorkoutSetRepository;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -28,6 +30,7 @@ public class WorkoutService {
     private final FitnessUserRepository userRepository;
     private final ExerciseRepository exerciseRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
+    private final WorkoutSetRepository workoutSetRepository;
 
     public List<Workout> getAllWorkouts() {
         return repository.findAllByOrderByStartTimeDesc();
@@ -93,19 +96,33 @@ public class WorkoutService {
             );
 
             // Add an initial empty set so the user can immediately log their weight and reps
-            WorkoutSet initialSet = new WorkoutSet();
-            initialSet.setWorkoutExercise(workoutExercise);
-            initialSet.setSetNumber(1);
-            initialSet.setSetType("NORMAL");
-            initialSet.setWeightKg(BigDecimal.ZERO);
-            initialSet.setReps(0);
-            initialSet.setIsCompleted(false);
-            workoutExercise.getSets().add(initialSet);
+            workoutExercise.addSet();
 
             workoutExerciseRepository.save(workoutExercise);
             workout.getExercises().add(workoutExercise);
         }
 
+        return repository.save(workout);
+    }
+
+    @Transactional
+    public Workout addSet(AddSetRequest request) {
+        if (request == null || request.workoutId() == null || request.exerciseId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "workoutId and exerciseId must be provided");
+        }
+
+        Workout workout = repository.findById(request.workoutId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workout not found with id: " + request.workoutId()));
+
+        WorkoutExercise workoutExercise = workout.getExercises().stream()
+                .filter(we -> (we.getExercise() != null && request.exerciseId().equals(we.getExercise().getId()))
+                        || request.exerciseId().equals(we.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exercise with id " + request.exerciseId() + " not found in workout " + request.workoutId()));
+
+        WorkoutSet newSet = workoutExercise.addSet();
+        workoutSetRepository.save(newSet);
+        workoutExerciseRepository.save(workoutExercise);
         return repository.save(workout);
     }
 

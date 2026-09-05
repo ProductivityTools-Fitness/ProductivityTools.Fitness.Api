@@ -8,6 +8,7 @@ import org.springframework.web.server.ResponseStatusException;
 import top.productivitytools.fitness.api.entities.Workout;
 import top.productivitytools.fitness.api.services.WorkoutService;
 import top.productivitytools.fitness.api.dto.requests.AddExercisesRequest;
+import top.productivitytools.fitness.api.dto.requests.AddSetRequest;
 
 import java.util.List;
 
@@ -60,5 +61,10 @@ public class WorkoutController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Workout ID must be provided in the URL path or in the request body");
         }
         return workoutService.addExercisesToWorkout(targetWorkoutId, request);
+    }
+
+    @PostMapping("/addSet")
+    public Workout addSet(@RequestBody AddSetRequest request) {
+        return workoutService.addSet(request);
     }
 }
