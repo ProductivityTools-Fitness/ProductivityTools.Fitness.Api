@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import top.productivitytools.fitness.api.dto.requests.AddExercisesRequest;
 import top.productivitytools.fitness.api.dto.requests.AddSetRequest;
+import top.productivitytools.fitness.api.dto.requests.SaveSetRequest;
 import top.productivitytools.fitness.api.entities.Exercise;
 import top.productivitytools.fitness.api.entities.FitnessUser;
 import top.productivitytools.fitness.api.entities.Workout;
@@ -124,6 +125,28 @@ public class WorkoutService {
         workoutSetRepository.save(newSet);
         workoutExerciseRepository.save(workoutExercise);
         return repository.save(workout);
+    }
+
+    @Transactional
+    public WorkoutSet saveSet(SaveSetRequest request) {
+        if (request == null || request.id() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set ID must be provided in request body");
+        }
+
+        WorkoutSet workoutSet = workoutSetRepository.findById(request.id())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workout set not found with id: " + request.id()));
+
+        if (request.kg() != null) {
+            workoutSet.setWeightKg(request.kg());
+        }
+        if (request.reps() != null) {
+            workoutSet.setReps(request.reps());
+        }
+        if (request.status() != null) {
+            workoutSet.setIsCompleted(request.status());
+        }
+
+        return workoutSetRepository.save(workoutSet);
     }
 
     private FitnessUser getOrCreateDefaultUser() {

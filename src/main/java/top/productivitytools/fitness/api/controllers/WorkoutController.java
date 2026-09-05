@@ -6,9 +6,11 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import top.productivitytools.fitness.api.entities.Workout;
+import top.productivitytools.fitness.api.entities.WorkoutSet;
 import top.productivitytools.fitness.api.services.WorkoutService;
 import top.productivitytools.fitness.api.dto.requests.AddExercisesRequest;
 import top.productivitytools.fitness.api.dto.requests.AddSetRequest;
+import top.productivitytools.fitness.api.dto.requests.SaveSetRequest;
 
 import java.util.List;
 
@@ -66,5 +68,10 @@ public class WorkoutController {
     @PostMapping("/addSet")
     public Workout addSet(@RequestBody AddSetRequest request) {
         return workoutService.addSet(request);
+    }
+
+    @RequestMapping(value = "/saveSet", method = {RequestMethod.POST, RequestMethod.PUT})
+    public WorkoutSet saveSet(@RequestBody SaveSetRequest request) {
+        return workoutService.saveSet(request);
     }
 }
