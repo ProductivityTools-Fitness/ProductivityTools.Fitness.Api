@@ -149,6 +149,30 @@ public class WorkoutService {
         return workoutSetRepository.save(workoutSet);
     }
 
+    @Transactional
+    public boolean deleteSet(Long setId) {
+        if (setId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set ID must be provided");
+        }
+
+        WorkoutSet workoutSet = workoutSetRepository.findById(setId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workout set not found with id: " + setId));
+
+        WorkoutExercise workoutExercise = workoutSet.getWorkoutExercise();
+        if (workoutExercise != null) {
+            workoutExercise.getSets().removeIf(s -> setId.equals(s.getId()));
+            int number = 1;
+            for (WorkoutSet s : workoutExercise.getSets()) {
+                s.setSetNumber(number++);
+            }
+            workoutExerciseRepository.save(workoutExercise);
+        } else {
+            workoutSetRepository.delete(workoutSet);
+        }
+
+        return true;
+    }
+
     private FitnessUser getOrCreateDefaultUser() {
         return userRepository.findByEmail("default@fitness.top")
                 .orElseGet(() -> {
