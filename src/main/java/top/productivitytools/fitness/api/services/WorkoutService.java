@@ -58,6 +58,9 @@ public class WorkoutService {
                     .orElseGet(this::getOrCreateDefaultUser);
             workout.setUser(existingUser);
         }
+        if (workout.getStartTime() == null) {
+            workout.setStartTime(OffsetDateTime.now());
+        }
         boolean isNew = workout.getId() == null;
         Workout saved = repository.save(workout);
         if (isNew && (saved.getTitle() == null || saved.getTitle().isBlank() || saved.getTitle().equalsIgnoreCase("Log Workout") || saved.getTitle().equalsIgnoreCase("New workout"))) {
@@ -250,6 +253,36 @@ public class WorkoutService {
                     newUser.setDefaultRestTimerSeconds(90);
                     return userRepository.save(newUser);
                 });
+    }
+
+    @Transactional
+    public WorkoutExercise updateExerciseNotes(Long workoutExerciseId, String notes) {
+        if (workoutExerciseId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "WorkoutExercise ID must be provided");
+        }
+        WorkoutExercise workoutExercise = workoutExerciseRepository.findById(workoutExerciseId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "WorkoutExercise not found with id: " + workoutExerciseId));
+        workoutExercise.setNotes(notes);
+        return workoutExerciseRepository.save(workoutExercise);
+    }
+
+    @Transactional
+    public Workout completeWorkout(Long workoutId) {
+        if (workoutId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Workout ID must be provided");
+        }
+        Workout workout = repository.findById(workoutId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workout not found with id: " + workoutId));
+
+        OffsetDateTime now = OffsetDateTime.now();
+        workout.setStatus("COMPLETED");
+        workout.setEndTime(now);
+        if (workout.getStartTime() != null) {
+            long duration = java.time.Duration.between(workout.getStartTime(), now).getSeconds();
+            workout.setDurationSeconds((int) Math.max(0, duration));
+        }
+        workout.setUpdatedAt(now);
+        return repository.save(workout);
     }
 
     public void delete(Long id) {

@@ -83,4 +83,29 @@ public class WorkoutController {
         }
         return workoutService.deleteSet(request.id());
     }
+
+    public record SaveExerciseNotesRequest(
+        Long workoutExerciseId,
+        String notes
+    ) {}
+
+    @PostMapping("/updateExerciseNotes")
+    public WorkoutExercise updateExerciseNotes(@RequestBody SaveExerciseNotesRequest request) {
+        if (request == null || request.workoutExerciseId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "WorkoutExercise ID must be provided in request body");
+        }
+        return workoutService.updateExerciseNotes(request.workoutExerciseId(), request.notes());
+    }
+
+    public record CompleteWorkoutRequest(
+        Long workoutId
+    ) {}
+
+    @PostMapping("/completeWorkout")
+    public Workout completeWorkout(@RequestBody CompleteWorkoutRequest request) {
+        if (request == null || request.workoutId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Workout ID must be provided in request body");
+        }
+        return workoutService.completeWorkout(request.workoutId());
+    }
 }

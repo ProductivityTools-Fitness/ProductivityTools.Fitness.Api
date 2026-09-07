@@ -184,4 +184,39 @@ class WorkoutServiceTest {
         assertEquals(6, newSet.getPrevReps());
         assertFalse(newSet.getIsCompleted());
     }
+
+    @Test
+    void updateExerciseNotes_UpdatesNotesAndSaves() {
+        WorkoutExercise we = new WorkoutExercise();
+        we.setId(50L);
+        we.setNotes("Old note");
+
+        when(workoutExerciseRepository.findById(50L)).thenReturn(Optional.of(we));
+        when(workoutExerciseRepository.save(any(WorkoutExercise.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        WorkoutExercise updated = workoutService.updateExerciseNotes(50L, "New note");
+
+        assertNotNull(updated);
+        assertEquals("New note", updated.getNotes());
+        verify(workoutExerciseRepository).save(we);
+    }
+
+    @Test
+    void completeWorkout_SetsStatusCompletedAndCalculatesDuration() {
+        Workout workout = new Workout();
+        workout.setId(200L);
+        workout.setStartTime(OffsetDateTime.now().minusSeconds(120));
+        workout.setStatus("IN_PROGRESS");
+
+        when(workoutRepository.findById(200L)).thenReturn(Optional.of(workout));
+        when(workoutRepository.save(any(Workout.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Workout completed = workoutService.completeWorkout(200L);
+
+        assertNotNull(completed);
+        assertEquals("COMPLETED", completed.getStatus());
+        assertNotNull(completed.getEndTime());
+        assertTrue(completed.getDurationSeconds() >= 119);
+        verify(workoutRepository).save(workout);
+    }
 }
