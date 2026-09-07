@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,13 +49,20 @@ public class WorkoutExercise {
 
     public WorkoutSet addSet() {
         WorkoutSet previousSet = sets.isEmpty() ? null : sets.get(sets.size() - 1);
+        BigDecimal defaultWeight = previousSet != null ? previousSet.getWeightKg() : BigDecimal.ZERO;
+        Integer defaultReps = previousSet != null ? previousSet.getReps() : 0;
+        return addSet(defaultWeight, defaultReps, null, null);
+    }
+
+    public WorkoutSet addSet(BigDecimal weightKg, Integer reps, BigDecimal prevWeightKg, Integer prevReps) {
         WorkoutSet newSet = new WorkoutSet();
         newSet.setWorkoutExercise(this);
         newSet.setSetNumber(sets.size() + 1);
-        if (previousSet != null) {
-            newSet.setWeightKg(previousSet.getWeightKg());
-            newSet.setReps(previousSet.getReps());
-        }
+        newSet.setWeightKg(weightKg != null ? weightKg : BigDecimal.ZERO);
+        newSet.setReps(reps != null ? reps : 0);
+        newSet.setPrevWeightKg(prevWeightKg);
+        newSet.setPrevReps(prevReps);
+        newSet.setIsCompleted(false);
         this.sets.add(newSet);
         return newSet;
     }

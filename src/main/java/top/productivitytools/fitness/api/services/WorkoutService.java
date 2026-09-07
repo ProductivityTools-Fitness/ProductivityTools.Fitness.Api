@@ -1,6 +1,7 @@
 package top.productivitytools.fitness.api.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,8 @@ import top.productivitytools.fitness.api.repositories.WorkoutRepository;
 import top.productivitytools.fitness.api.repositories.WorkoutSetRepository;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -78,10 +81,16 @@ public class WorkoutService {
         Workout workout = repository.findById(workoutId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workout not found with id: " + workoutId));
 
+        if (workout.getUser() == null || workout.getUser().getId() == null) {
+            workout.setUser(getOrCreateDefaultUser());
+            workout = repository.save(workout);
+        }
+
         if (request == null || request.exerciseIds() == null || request.exerciseIds().isEmpty()) {
             return workout;
         }
 
+        Long userId = workout.getUser().getId();
         int nextOrderIndex = workout.getExercises().size() + 1;
 
         for (Long exerciseId : request.exerciseIds()) {
@@ -92,12 +101,37 @@ public class WorkoutService {
             workoutExercise.setWorkout(workout);
             workoutExercise.setExercise(exercise);
             workoutExercise.setOrderIndex(nextOrderIndex++);
-            workoutExercise.setRestTimerSeconds(
-                    workout.getUser() != null ? workout.getUser().getDefaultRestTimerSeconds() : 90
-            );
 
-            // Add an initial empty set so the user can immediately log their weight and reps
-            workoutExercise.addSet();
+            Optional<WorkoutExercise> pastExerciseOpt = findPastExercise(userId, exerciseId, workout.getId(), workout.getStartTime());
+
+            int defaultRestSeconds = workout.getUser() != null ? workout.getUser().getDefaultRestTimerSeconds() : 90;
+            Integer restTimer = pastExerciseOpt.map(WorkoutExercise::getRestTimerSeconds)
+                    .filter(rt -> rt != null && rt > 0)
+                    .orElse(defaultRestSeconds);
+            workoutExercise.setRestTimerSeconds(restTimer);
+
+            if (pastExerciseOpt.isPresent()) {
+                WorkoutExercise pastExercise = pastExerciseOpt.get();
+                List<WorkoutSet> pastSets = pastExercise.getSets().stream()
+                        .sorted(Comparator.comparing(WorkoutSet::getSetNumber, Comparator.nullsLast(Comparator.naturalOrder())))
+                        .toList();
+
+                if (!pastSets.isEmpty()) {
+                    for (WorkoutSet pastSet : pastSets) {
+                        workoutExercise.addSet(
+                                pastSet.getWeightKg(),
+                                pastSet.getReps(),
+                                pastSet.getWeightKg(),
+                                pastSet.getReps()
+                        );
+                    }
+                } else {
+                    workoutExercise.addSet();
+                }
+            } else {
+                // Add an initial empty set if the user has not done this exercise in the past
+                workoutExercise.addSet();
+            }
 
             workoutExerciseRepository.save(workoutExercise);
             workout.getExercises().add(workoutExercise);
@@ -121,10 +155,44 @@ public class WorkoutService {
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exercise with id " + request.exerciseId() + " not found in workout " + request.workoutId()));
 
-        WorkoutSet newSet = workoutExercise.addSet();
+        int nextSetNumber = workoutExercise.getSets().size() + 1;
+        Long userId = workout.getUser() != null ? workout.getUser().getId() : null;
+        Long exerciseEntityId = workoutExercise.getExercise() != null ? workoutExercise.getExercise().getId() : null;
+
+        Optional<WorkoutSet> pastSetOpt = Optional.empty();
+        if (userId != null && exerciseEntityId != null) {
+            pastSetOpt = findPastExercise(userId, exerciseEntityId, workout.getId(), workout.getStartTime())
+                    .flatMap(pe -> pe.getSets().stream()
+                            .filter(s -> s.getSetNumber() != null && s.getSetNumber().equals(nextSetNumber))
+                            .findFirst());
+        }
+
+        WorkoutSet newSet;
+        if (pastSetOpt.isPresent()) {
+            WorkoutSet pastSet = pastSetOpt.get();
+            newSet = workoutExercise.addSet(
+                    pastSet.getWeightKg(),
+                    pastSet.getReps(),
+                    pastSet.getWeightKg(),
+                    pastSet.getReps()
+            );
+        } else {
+            newSet = workoutExercise.addSet();
+        }
+
         workoutSetRepository.save(newSet);
         workoutExerciseRepository.save(workoutExercise);
         return repository.save(workout);
+    }
+
+    public Optional<WorkoutExercise> findPastExercise(Long userId, Long exerciseId, Long currentWorkoutId, OffsetDateTime currentWorkoutStartTime) {
+        if (userId == null || exerciseId == null) {
+            return Optional.empty();
+        }
+        List<WorkoutExercise> past = workoutExerciseRepository.findPastExercises(
+                userId, exerciseId, currentWorkoutId, currentWorkoutStartTime, PageRequest.of(0, 1)
+        );
+        return past.isEmpty() ? Optional.empty() : Optional.of(past.get(0));
     }
 
     @Transactional
