@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import top.productivitytools.fitness.api.entities.Workout;
+import top.productivitytools.fitness.api.entities.WorkoutExercise;
 import top.productivitytools.fitness.api.entities.WorkoutSet;
 import top.productivitytools.fitness.api.services.WorkoutService;
 import top.productivitytools.fitness.api.dto.requests.AddExercisesRequest;
