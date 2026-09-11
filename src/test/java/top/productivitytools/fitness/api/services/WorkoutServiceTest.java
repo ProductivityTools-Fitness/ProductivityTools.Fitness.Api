@@ -1,5 +1,6 @@
 package top.productivitytools.fitness.api.services;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +12,7 @@ import top.productivitytools.fitness.api.dto.requests.AddExercisesRequest;
 import top.productivitytools.fitness.api.dto.requests.AddSetRequest;
 import top.productivitytools.fitness.api.entities.*;
 import top.productivitytools.fitness.api.repositories.*;
+import top.productivitytools.fitness.api.security.UserContext;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -49,6 +51,7 @@ class WorkoutServiceTest {
         user.setId(1L);
         user.setEmail("user@test.com");
         user.setDefaultRestTimerSeconds(60);
+        UserContext.setCurrentUser(user);
 
         exercise = new Exercise();
         exercise.setId(10L);
@@ -58,6 +61,11 @@ class WorkoutServiceTest {
         currentWorkout.setId(100L);
         currentWorkout.setUser(user);
         currentWorkout.setStartTime(OffsetDateTime.now());
+    }
+
+    @AfterEach
+    void tearDown() {
+        UserContext.clear();
     }
 
     @Test

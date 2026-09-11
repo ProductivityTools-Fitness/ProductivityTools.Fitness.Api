@@ -20,6 +20,7 @@ import top.productivitytools.fitness.api.repositories.FitnessUserRepository;
 import top.productivitytools.fitness.api.repositories.WorkoutExerciseRepository;
 import top.productivitytools.fitness.api.repositories.WorkoutRepository;
 import top.productivitytools.fitness.api.repositories.WorkoutSetRepository;
+import top.productivitytools.fitness.api.security.UserContext;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -37,25 +38,32 @@ public class WorkoutService {
     private final WorkoutSetRepository workoutSetRepository;
 
     public List<Workout> getAllWorkouts() {
-        return repository.findAllByOrderByStartTimeDesc();
+        FitnessUser user = getCurrentUser();
+        return repository.findByUserIdOrderByStartTimeDesc(user.getId());
     }
 
     public List<Workout> getWorkoutsByUserId(Long userId) {
-        return repository.findByUserIdOrderByStartTimeDesc(userId);
+        FitnessUser currentUser = getCurrentUser();
+        if (userId != null && !userId.equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot access workouts of another user");
+        }
+        return repository.findByUserIdOrderByStartTimeDesc(currentUser.getId());
     }
 
     public Optional<Workout> getWorkoutById(Long id) {
-        return repository.findById(id);
+        FitnessUser currentUser = getCurrentUser();
+        return repository.findById(id)
+                .filter(w -> w.getUser() == null || (w.getUser().getId() != null && w.getUser().getId().equals(currentUser.getId())));
     }
 
     @Transactional
     public Workout save(Workout workout) {
+        FitnessUser currentUser = getCurrentUser();
         if (workout.getUser() == null || workout.getUser().getId() == null) {
-            FitnessUser defaultUser = getOrCreateDefaultUser();
-            workout.setUser(defaultUser);
+            workout.setUser(currentUser);
         } else if (workout.getUser().getId() != null) {
             FitnessUser existingUser = userRepository.findById(workout.getUser().getId())
-                    .orElseGet(this::getOrCreateDefaultUser);
+                    .orElse(currentUser);
             workout.setUser(existingUser);
         }
         if (workout.getStartTime() == null) {
@@ -85,7 +93,7 @@ public class WorkoutService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workout not found with id: " + workoutId));
 
         if (workout.getUser() == null || workout.getUser().getId() == null) {
-            workout.setUser(getOrCreateDefaultUser());
+            workout.setUser(getCurrentUser());
             workout = repository.save(workout);
         }
 
@@ -244,15 +252,12 @@ public class WorkoutService {
         return true;
     }
 
-    private FitnessUser getOrCreateDefaultUser() {
-        return userRepository.findByEmail("default@fitness.top")
-                .orElseGet(() -> {
-                    FitnessUser newUser = new FitnessUser();
-                    newUser.setEmail("default@fitness.top");
-                    newUser.setUsername("Default User");
-                    newUser.setDefaultRestTimerSeconds(90);
-                    return userRepository.save(newUser);
-                });
+    public FitnessUser getCurrentUser() {
+        FitnessUser user = UserContext.getCurrentUser();
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not authenticated");
+        }
+        return user;
     }
 
     @Transactional
@@ -286,6 +291,13 @@ public class WorkoutService {
     }
 
     public void delete(Long id) {
-        repository.deleteById(id);
+        FitnessUser currentUser = getCurrentUser();
+        repository.findById(id).ifPresent(workout -> {
+            if (workout.getUser() != null && workout.getUser().getId() != null
+                    && !workout.getUser().getId().equals(currentUser.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot delete workout of another user");
+            }
+            repository.delete(workout);
+        });
     }
 }
