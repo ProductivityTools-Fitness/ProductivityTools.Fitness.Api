@@ -6,8 +6,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -22,11 +22,26 @@ import java.util.Base64;
 @Slf4j
 @Component
 @Order(1)
-@RequiredArgsConstructor
 public class FirebaseAuthFilter extends OncePerRequestFilter {
+
+    public static final String DEFAULT_ALLOWED_EMAIL = "pwujczyk@gmail.com";
 
     private final FitnessUserRepository userRepository;
     private final ObjectMapper objectMapper;
+    private final String allowedEmail;
+
+    public FirebaseAuthFilter(
+            FitnessUserRepository userRepository,
+            ObjectMapper objectMapper,
+            @Value("${fitness.security.allowed-email:" + DEFAULT_ALLOWED_EMAIL + "}") String allowedEmail) {
+        this.userRepository = userRepository;
+        this.objectMapper = objectMapper;
+        this.allowedEmail = (allowedEmail != null && !allowedEmail.isBlank()) ? allowedEmail : DEFAULT_ALLOWED_EMAIL;
+    }
+
+    public FirebaseAuthFilter(FitnessUserRepository userRepository, ObjectMapper objectMapper) {
+        this(userRepository, objectMapper, DEFAULT_ALLOWED_EMAIL);
+    }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -46,14 +61,21 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
         try {
             String authHeader = request.getHeader("Authorization");
             if (authHeader == null || !authHeader.regionMatches(true, 0, "Bearer ", 0, 7)) {
-                sendUnauthorizedError(response, "Missing or invalid Authorization header");
+                sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Missing or invalid Authorization header");
                 return;
             }
 
             String token = authHeader.substring(7).trim();
-            FitnessUser user = resolveUserFromToken(token);
+            FitnessUser user;
+            try {
+                user = resolveUserFromToken(token);
+            } catch (AuthException e) {
+                sendError(response, e.getStatusCode(), e.getMessage());
+                return;
+            }
+
             if (user == null) {
-                sendUnauthorizedError(response, "Invalid or expired authentication token");
+                sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired authentication token");
                 return;
             }
 
@@ -64,14 +86,15 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
         }
     }
 
-    private void sendUnauthorizedError(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    private void sendError(HttpServletResponse response, int status, String message) throws IOException {
+        response.setStatus(status);
         response.setContentType("application/json");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.getWriter().write(String.format("{\"error\":\"Unauthorized\",\"message\":\"%s\"}", message));
+        String errorName = (status == HttpServletResponse.SC_FORBIDDEN) ? "Forbidden" : "Unauthorized";
+        response.getWriter().write(String.format("{\"error\":\"%s\",\"message\":\"%s\"}", errorName, message));
     }
 
-    private FitnessUser resolveUserFromToken(String token) {
+    private FitnessUser resolveUserFromToken(String token) throws AuthException {
         if (token == null || token.isBlank()) {
             return null;
         }
@@ -102,8 +125,15 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
                 }
 
                 if (email != null) {
+                    if (!isEmailAllowed(email)) {
+                        log.warn("Access denied for email: {}. Only {} is allowed.", email, allowedEmail);
+                        throw new AuthException(HttpServletResponse.SC_FORBIDDEN,
+                                "Access denied. Only " + allowedEmail + " is permitted.");
+                    }
                     return getOrCreateUser(email, name);
                 }
+            } catch (AuthException e) {
+                throw e;
             } catch (Exception e) {
                 log.warn("Failed to decode Bearer token as JWT: {}", e.getMessage());
             }
@@ -111,15 +141,30 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
 
         // Support dev/testing fallback: Bearer <email> or Bearer <userId>
         if (token.contains("@")) {
+            if (!isEmailAllowed(token)) {
+                log.warn("Access denied for email: {}. Only {} is allowed.", token, allowedEmail);
+                throw new AuthException(HttpServletResponse.SC_FORBIDDEN,
+                        "Access denied. Only " + allowedEmail + " is permitted.");
+            }
             return getOrCreateUser(token, null);
         }
         try {
             Long id = Long.parseLong(token);
-            return userRepository.findById(id).orElse(null);
+            FitnessUser user = userRepository.findById(id).orElse(null);
+            if (user != null && !isEmailAllowed(user.getEmail())) {
+                log.warn("Access denied for userId {} with email {}. Only {} is allowed.", id, user.getEmail(), allowedEmail);
+                throw new AuthException(HttpServletResponse.SC_FORBIDDEN,
+                        "Access denied. Only " + allowedEmail + " is permitted.");
+            }
+            return user;
         } catch (NumberFormatException ignored) {
         }
 
         return null;
+    }
+
+    private boolean isEmailAllowed(String email) {
+        return email != null && allowedEmail.equalsIgnoreCase(email.trim());
     }
 
     private FitnessUser getOrCreateUser(String email, String name) {
@@ -137,5 +182,18 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
                                 .orElseThrow(() -> new RuntimeException("Failed to get or create user: " + email, e));
                     }
                 });
+    }
+
+    private static class AuthException extends Exception {
+        private final int statusCode;
+
+        public AuthException(int statusCode, String message) {
+            super(message);
+            this.statusCode = statusCode;
+        }
+
+        public int getStatusCode() {
+            return statusCode;
+        }
     }
 }
