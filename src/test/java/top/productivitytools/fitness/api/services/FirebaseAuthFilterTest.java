@@ -86,6 +86,45 @@ class FirebaseAuthFilterTest {
     }
 
     @Test
+    void doFilter_WithGoogleUserToken_ResolvesAndSetsUserInContext() throws ServletException, IOException {
+        String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
+        long futureExp = Instant.now().getEpochSecond() + 3600;
+        String payloadJson = String.format("{\"email\":\"pwujczyk@google.com\",\"name\":\"Pawel Wujczyk Google\",\"sub\":\"firebaseUidGoogle\",\"exp\":%d}", futureExp);
+        String dummySig = "signature";
+
+        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(headerJson.getBytes(StandardCharsets.UTF_8))
+                + "." + Base64.getUrlEncoder().withoutPadding().encodeToString(payloadJson.getBytes(StandardCharsets.UTF_8))
+                + "." + Base64.getUrlEncoder().withoutPadding().encodeToString(dummySig.getBytes(StandardCharsets.UTF_8));
+
+        FitnessUser user = new FitnessUser();
+        user.setId(2L);
+        user.setEmail("pwujczyk@google.com");
+        user.setUsername("Pawel Wujczyk Google");
+
+        when(userRepository.findByEmail("pwujczyk@google.com")).thenReturn(Optional.of(user));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath("/api/workout/list");
+        request.addHeader("Authorization", "Bearer " + token);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        AtomicReference<FitnessUser> capturedUserDuringFilter = new AtomicReference<>();
+        doAnswer(invocation -> {
+            capturedUserDuringFilter.set(UserContext.getCurrentUser());
+            return null;
+        }).when(filterChain).doFilter(any(), any());
+
+        filter.doFilter(request, response, filterChain);
+
+        assertNotNull(capturedUserDuringFilter.get());
+        assertEquals("pwujczyk@google.com", capturedUserDuringFilter.get().getEmail());
+        assertEquals(2L, capturedUserDuringFilter.get().getId());
+        assertEquals(HttpServletResponse.SC_OK, response.getStatus());
+
+        assertNull(UserContext.getCurrentUser());
+    }
+
+    @Test
     void doFilter_WithDisallowedUserToken_Returns403Forbidden() throws ServletException, IOException {
         String headerJson = "{\"alg\":\"RS256\",\"typ\":\"JWT\"}";
         long futureExp = Instant.now().getEpochSecond() + 3600;
@@ -104,7 +143,7 @@ class FirebaseAuthFilterTest {
         filter.doFilter(request, response, filterChain);
 
         assertEquals(HttpServletResponse.SC_FORBIDDEN, response.getStatus());
-        assertTrue(response.getContentAsString().contains("Access denied. Only pwujczyk@gmail.com is permitted."));
+        assertTrue(response.getContentAsString().contains("Access denied. Only authorized users"));
         verify(filterChain, never()).doFilter(any(), any());
         verify(userRepository, never()).findByEmail(any());
         assertNull(UserContext.getCurrentUser());

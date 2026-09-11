@@ -6,8 +6,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -18,30 +18,21 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Set;
 
 @Slf4j
 @Component
 @Order(1)
+@RequiredArgsConstructor
 public class FirebaseAuthFilter extends OncePerRequestFilter {
 
-    public static final String DEFAULT_ALLOWED_EMAIL = "pwujczyk@gmail.com";
+    public static final Set<String> ALLOWED_EMAILS = Set.of(
+            "pwujczyk@gmail.com",
+            "pwujczyk@google.com"
+    );
 
     private final FitnessUserRepository userRepository;
     private final ObjectMapper objectMapper;
-    private final String allowedEmail;
-
-    public FirebaseAuthFilter(
-            FitnessUserRepository userRepository,
-            ObjectMapper objectMapper,
-            @Value("${fitness.security.allowed-email:" + DEFAULT_ALLOWED_EMAIL + "}") String allowedEmail) {
-        this.userRepository = userRepository;
-        this.objectMapper = objectMapper;
-        this.allowedEmail = (allowedEmail != null && !allowedEmail.isBlank()) ? allowedEmail : DEFAULT_ALLOWED_EMAIL;
-    }
-
-    public FirebaseAuthFilter(FitnessUserRepository userRepository, ObjectMapper objectMapper) {
-        this(userRepository, objectMapper, DEFAULT_ALLOWED_EMAIL);
-    }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -126,9 +117,9 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
 
                 if (email != null) {
                     if (!isEmailAllowed(email)) {
-                        log.warn("Access denied for email: {}. Only {} is allowed.", email, allowedEmail);
+                        log.warn("Access denied for email: {}. Allowed emails: {}", email, ALLOWED_EMAILS);
                         throw new AuthException(HttpServletResponse.SC_FORBIDDEN,
-                                "Access denied. Only " + allowedEmail + " is permitted.");
+                                "Access denied. Only authorized users " + ALLOWED_EMAILS + " are permitted.");
                     }
                     return getOrCreateUser(email, name);
                 }
@@ -142,9 +133,9 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
         // Support dev/testing fallback: Bearer <email> or Bearer <userId>
         if (token.contains("@")) {
             if (!isEmailAllowed(token)) {
-                log.warn("Access denied for email: {}. Only {} is allowed.", token, allowedEmail);
+                log.warn("Access denied for email: {}. Allowed emails: {}", token, ALLOWED_EMAILS);
                 throw new AuthException(HttpServletResponse.SC_FORBIDDEN,
-                        "Access denied. Only " + allowedEmail + " is permitted.");
+                        "Access denied. Only authorized users " + ALLOWED_EMAILS + " are permitted.");
             }
             return getOrCreateUser(token, null);
         }
@@ -152,9 +143,9 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
             Long id = Long.parseLong(token);
             FitnessUser user = userRepository.findById(id).orElse(null);
             if (user != null && !isEmailAllowed(user.getEmail())) {
-                log.warn("Access denied for userId {} with email {}. Only {} is allowed.", id, user.getEmail(), allowedEmail);
+                log.warn("Access denied for userId {} with email {}. Allowed emails: {}", id, user.getEmail(), ALLOWED_EMAILS);
                 throw new AuthException(HttpServletResponse.SC_FORBIDDEN,
-                        "Access denied. Only " + allowedEmail + " is permitted.");
+                        "Access denied. Only authorized users " + ALLOWED_EMAILS + " are permitted.");
             }
             return user;
         } catch (NumberFormatException ignored) {
@@ -164,7 +155,11 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
     }
 
     private boolean isEmailAllowed(String email) {
-        return email != null && allowedEmail.equalsIgnoreCase(email.trim());
+        if (email == null) {
+            return false;
+        }
+        String trimmed = email.trim();
+        return ALLOWED_EMAILS.stream().anyMatch(allowed -> allowed.equalsIgnoreCase(trimmed));
     }
 
     private FitnessUser getOrCreateUser(String email, String name) {
