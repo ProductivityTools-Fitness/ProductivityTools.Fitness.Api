@@ -294,14 +294,21 @@ public class WorkoutService {
         return repository.save(workout);
     }
 
-    public void delete(Long id) {
+    @Transactional
+    public boolean deleteWorkout(Long id) {
+        if (id == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Workout ID must be provided");
+        }
         FitnessUser currentUser = getCurrentUser();
-        repository.findById(id).ifPresent(workout -> {
-            if (workout.getUser() != null && workout.getUser().getId() != null
-                    && !workout.getUser().getId().equals(currentUser.getId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot delete workout of another user");
-            }
-            repository.delete(workout);
-        });
+        Workout workout = repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workout not found with id: " + id));
+
+        if (workout.getUser() != null && workout.getUser().getId() != null
+                && !workout.getUser().getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot delete workout of another user");
+        }
+
+        repository.delete(workout);
+        return true;
     }
 }

@@ -12,6 +12,7 @@ import top.productivitytools.fitness.api.services.WorkoutService;
 import top.productivitytools.fitness.api.dto.requests.AddExercisesRequest;
 import top.productivitytools.fitness.api.dto.requests.AddSetRequest;
 import top.productivitytools.fitness.api.dto.requests.DeleteSetRequest;
+import top.productivitytools.fitness.api.dto.requests.DeleteWorkoutRequest;
 import top.productivitytools.fitness.api.dto.requests.SaveSetRequest;
 
 import java.util.List;
@@ -108,5 +109,13 @@ public class WorkoutController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Workout ID must be provided in request body");
         }
         return workoutService.completeWorkout(request.workoutId());
+    }
+
+    @PostMapping("/delete")
+    public boolean deleteWorkout(@RequestBody DeleteWorkoutRequest request) {
+        if (request == null || request.id() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Workout ID must be provided in request body");
+        }
+        return workoutService.deleteWorkout(request.id());
     }
 }

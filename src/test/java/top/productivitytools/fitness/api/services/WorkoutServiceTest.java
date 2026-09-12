@@ -8,6 +8,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import top.productivitytools.fitness.api.dto.requests.AddExercisesRequest;
 import top.productivitytools.fitness.api.dto.requests.AddSetRequest;
 import top.productivitytools.fitness.api.entities.*;
@@ -267,5 +269,52 @@ class WorkoutServiceTest {
         assertNotNull(saved);
         assertEquals(4, saved.getWorkoutNumber());
         assertEquals("Push Day", saved.getTitle());
+    }
+
+    @Test
+    void deleteWorkout_WhenExistsAndBelongsToUser_DeletesAndReturnsTrue() {
+        when(workoutRepository.findById(100L)).thenReturn(Optional.of(currentWorkout));
+
+        boolean result = workoutService.deleteWorkout(100L);
+
+        assertTrue(result);
+        verify(workoutRepository).delete(currentWorkout);
+    }
+
+    @Test
+    void deleteWorkout_WhenNotFound_ThrowsNotFoundException() {
+        when(workoutRepository.findById(999L)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                workoutService.deleteWorkout(999L));
+
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+        verify(workoutRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteWorkout_WhenBelongsToAnotherUser_ThrowsForbiddenException() {
+        FitnessUser anotherUser = new FitnessUser();
+        anotherUser.setId(2L);
+        Workout anotherUserWorkout = new Workout();
+        anotherUserWorkout.setId(200L);
+        anotherUserWorkout.setUser(anotherUser);
+
+        when(workoutRepository.findById(200L)).thenReturn(Optional.of(anotherUserWorkout));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                workoutService.deleteWorkout(200L));
+
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        verify(workoutRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteWorkout_WhenIdIsNull_ThrowsBadRequestException() {
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                workoutService.deleteWorkout(null));
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        verify(workoutRepository, never()).delete(any());
     }
 }
