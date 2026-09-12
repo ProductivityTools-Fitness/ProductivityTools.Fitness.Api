@@ -24,6 +24,9 @@ public class Workout {
     @JoinColumn(name = "user_id", nullable = false)
     private FitnessUser user;
 
+    @Column(name = "workout_number", nullable = false)
+    private Integer workoutNumber;
+
     @Column(nullable = false, length = 150)
     private String title = "Log Workout";
 

@@ -227,4 +227,45 @@ class WorkoutServiceTest {
         assertTrue(completed.getDurationSeconds() >= 119);
         verify(workoutRepository).save(workout);
     }
+
+    @Test
+    void save_WhenFirstWorkoutForUser_AssignsWorkoutNumber1AndTrening1() {
+        when(workoutRepository.findMaxWorkoutNumberByUserId(1L)).thenReturn(0);
+        when(workoutRepository.save(any(Workout.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Workout workout = new Workout();
+        Workout saved = workoutService.save(workout);
+
+        assertNotNull(saved);
+        assertEquals(1, saved.getWorkoutNumber());
+        assertEquals("Trening #1", saved.getTitle());
+        assertEquals(user, saved.getUser());
+    }
+
+    @Test
+    void save_WhenSecondWorkoutForUser_AssignsWorkoutNumber2AndTrening2() {
+        when(workoutRepository.findMaxWorkoutNumberByUserId(1L)).thenReturn(1);
+        when(workoutRepository.save(any(Workout.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Workout workout = new Workout();
+        Workout saved = workoutService.save(workout);
+
+        assertNotNull(saved);
+        assertEquals(2, saved.getWorkoutNumber());
+        assertEquals("Trening #2", saved.getTitle());
+    }
+
+    @Test
+    void save_WithCustomTitle_PreservesCustomTitleAndSetsWorkoutNumber() {
+        when(workoutRepository.findMaxWorkoutNumberByUserId(1L)).thenReturn(3);
+        when(workoutRepository.save(any(Workout.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Workout workout = new Workout();
+        workout.setTitle("Push Day");
+        Workout saved = workoutService.save(workout);
+
+        assertNotNull(saved);
+        assertEquals(4, saved.getWorkoutNumber());
+        assertEquals("Push Day", saved.getTitle());
+    }
 }

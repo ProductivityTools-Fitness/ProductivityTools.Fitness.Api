@@ -59,23 +59,27 @@ public class WorkoutService {
     @Transactional
     public Workout save(Workout workout) {
         FitnessUser currentUser = getCurrentUser();
-        if (workout.getUser() == null || workout.getUser().getId() == null) {
-            workout.setUser(currentUser);
-        } else if (workout.getUser().getId() != null) {
-            FitnessUser existingUser = userRepository.findById(workout.getUser().getId())
-                    .orElse(currentUser);
-            workout.setUser(existingUser);
-        }
+        workout.setUser(currentUser);
+
         if (workout.getStartTime() == null) {
             workout.setStartTime(OffsetDateTime.now());
         }
         boolean isNew = workout.getId() == null;
-        Workout saved = repository.save(workout);
-        if (isNew && (saved.getTitle() == null || saved.getTitle().isBlank() || saved.getTitle().equalsIgnoreCase("Log Workout") || saved.getTitle().equalsIgnoreCase("New workout"))) {
-            saved.setTitle("Trening #" + saved.getId());
-            saved = repository.save(saved);
+        if (isNew) {
+            if (workout.getWorkoutNumber() == null) {
+                int nextNumber = repository.findMaxWorkoutNumberByUserId(currentUser.getId()) + 1;
+                workout.setWorkoutNumber(nextNumber);
+            }
+            boolean needsTitle = workout.getTitle() == null
+                    || workout.getTitle().isBlank()
+                    || workout.getTitle().equalsIgnoreCase("Log Workout")
+                    || workout.getTitle().equalsIgnoreCase("New workout");
+
+            if (needsTitle) {
+                workout.setTitle("Trening #" + workout.getWorkoutNumber());
+            }
         }
-        return saved;
+        return repository.save(workout);
     }
 
     @Transactional
